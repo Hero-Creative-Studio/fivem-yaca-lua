@@ -840,6 +840,20 @@ function YacaClient:getRoomPair(ped, isolatedFromRoom)
     return YacaGetInteriorRoomPair(ped)
 end
 
+function YacaClient:vehicleEnclosesFromRoom(vehicle)
+    if not self.isFiveM or not vehicle then
+        return false
+    end
+
+    local vehicleClass = GetVehicleClass(vehicle)
+    for _, cls in ipairs(self.sharedConfig.reverb and self.sharedConfig.reverb.openVehicleClasses or {}) do
+        if cls == vehicleClass then
+            return false
+        end
+    end
+    return true
+end
+
 function YacaClient:isAirborneVehicle(vehicle)
     if not self.sharedConfig.airborne or not self.sharedConfig.airborne.enabled or not self.isFiveM or not vehicle then
         return false
@@ -1004,7 +1018,8 @@ function YacaClient:calcPlayers()
 
     local localPos = GetEntityCoords(localPlayerPed, false)
     local currentRoom = GetRoomKeyFromEntity(localPlayerPed)
-    local localRoomPair = self:getRoomPair(localPlayerPed, localPlayerVehicle and true or false)
+    local localVehicleEncloses = self:vehicleEnclosesFromRoom(localPlayerVehicle)
+    local localRoomPair = self:getRoomPair(localPlayerPed, localVehicleEncloses)
     local hasVehicleOpening = self.isFiveM and self:checkIfVehicleHasOpening(localPlayerVehicle) or true
     local phoneSpeakerActive = YacaPhone and YacaPhone.phoneSpeakerActive and next(YacaPhone.inCallWith) ~= nil
     local phoneHearNearby = self.sharedConfig.phoneHearPlayersNearby
@@ -1046,7 +1061,7 @@ function YacaClient:calcPlayers()
                 local isUnderwater = IsPedSwimmingUnderWater(playerPed)
                 local playerVehicle = GetVehiclePedIsIn(playerPed, false)
                 local sharesLocalVehicle = localPlayerVehicle and playerVehicle == localPlayerVehicle
-                local playerRoomPair = self:getRoomPair(playerPed, sharesLocalVehicle)
+                local playerRoomPair = self:getRoomPair(playerPed, sharesLocalVehicle and localVehicleEncloses)
 
                 if localVehicleIsAirborne and sharesLocalVehicle then
                     airborneCrewMembers[remoteId] = true

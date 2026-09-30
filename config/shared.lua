@@ -88,6 +88,11 @@ YacaSharedConfig = {
         vehicleClasses = { 15, 16 },
     },
 
+    reverb = {
+        -- Vehicle classes without a cabin, their riders keep the reverb of the room. 8 = motorcycles, 13 = cycles. (FiveM only)
+        openVehicleClasses = { 8, 13 },
+    },
+
     voiceRange = {
         -- The default index which should be used for the voice range when a player joins the server.
         defaultIndex = 2, -- Lua 1-based index (maps to ranges[2] = 3)
