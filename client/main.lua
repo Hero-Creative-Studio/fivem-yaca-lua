@@ -1020,7 +1020,10 @@ function YacaClient:calcPlayers()
     local currentRoom = GetRoomKeyFromEntity(localPlayerPed)
     local localVehicleEncloses = self:vehicleEnclosesFromRoom(localPlayerVehicle)
     local localRoomPair = self:getRoomPair(localPlayerPed, localVehicleEncloses)
-    local hasVehicleOpening = self.isFiveM and self:checkIfVehicleHasOpening(localPlayerVehicle) or true
+    local hasVehicleOpening = true
+    if self.isFiveM then
+        hasVehicleOpening = self:checkIfVehicleHasOpening(localPlayerVehicle)
+    end
     local phoneSpeakerActive = YacaPhone and YacaPhone.phoneSpeakerActive and next(YacaPhone.inCallWith) ~= nil
     local phoneHearNearby = self.sharedConfig.phoneHearPlayersNearby
     local maxPhoneSpeakerRange = self.sharedConfig.maxPhoneSpeakerRange
