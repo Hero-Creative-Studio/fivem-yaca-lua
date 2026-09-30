@@ -1081,6 +1081,10 @@ function YacaClient:calcPlayers()
     local defaultVoiceRange = self.defaultVoiceRange
     local useWhisper = self.useWhisper
     local localVehicleIsAirborne = self:isAirborneVehicle(localPlayerVehicle)
+    local ghosting = YacaGhosting
+    local ghostReach = ghosting and ghosting.isGhosting and ghosting:getReach()
+    local playersToGhost = {}
+    local playerIndexById = {}
 
     local activePlayers = GetActivePlayers()
     for _, player in ipairs(activePlayers) do
@@ -1101,20 +1105,28 @@ function YacaClient:calcPlayers()
                     voiceSetting.cachedUsesMegaphone = usesMegaphone
                 end
 
-                local muffleIntensity = self:getMuffleIntensity(
-                    localPlayerPed, playerPed, localPlayerVehicle,
-                    currentRoom, hasVehicleOpening,
-                    usesMegaphone,
-                    vehicleOpeningCache
-                )
-
                 local playerPos = GetEntityCoords(playerPed, false)
                 local distanceToPlayer = #(localPos - playerPos)
+
+                local isGhosted = ghosting and ghosting:isPlayerGhosted(distanceToPlayer, voiceSetting.forceMuted, ghostReach)
+                local muffleIntensity = 0
+                if isGhosted then
+                    playersToGhost[remoteId] = true
+                    range = ghostReach
+                else
+                    muffleIntensity = self:getMuffleIntensity(
+                        localPlayerPed, playerPed, localPlayerVehicle,
+                        currentRoom, hasVehicleOpening,
+                        usesMegaphone,
+                        vehicleOpeningCache
+                    )
+                end
+
                 local playerDirection = GetEntityForwardVector(playerPed)
                 local isUnderwater = IsPedSwimmingUnderWater(playerPed)
                 local playerVehicle = GetVehiclePedIsIn(playerPed, false)
                 local sharesLocalVehicle = localPlayerVehicle and playerVehicle == localPlayerVehicle
-                local playerRoomPair = self:getRoomPair(playerPed, sharesLocalVehicle and localVehicleEncloses)
+                local playerRoomPair = isGhosted and localRoomPair or self:getRoomPair(playerPed, sharesLocalVehicle and localVehicleEncloses)
 
                 if localVehicleIsAirborne and sharesLocalVehicle then
                     airborneCrewMembers[remoteId] = true
@@ -1137,6 +1149,7 @@ function YacaClient:calcPlayers()
                     entry.room_key = playerRoomPair.roomKey
                 end
                 playersList[#playersList + 1] = entry
+                playerIndexById[remoteId] = #playersList
 
                 if phoneHearNearby and not localData.mutedOnPhone and not voiceSetting.forceMuted
                     and self:canHearThroughWorld(distanceToPlayer, range, muffleIntensity, math.abs(localPos.z - playerPos.z)) then
@@ -1170,9 +1183,15 @@ function YacaClient:calcPlayers()
     self:handlePhoneEmit(playerToHearOnPhone)
     self:handleAirborneEmit(airborneCrewMembers)
 
+    local localPosXYZ = YacaConvertToXYZ(localPos)
+    if ghosting then
+        ghosting:handleGhostingEmit(playersToGhost)
+        ghosting:addGhostsToPlayerList(playersList, playerIndexById, localPosXYZ, localRoomPair)
+    end
+
     local playerPayload = {
         player_direction = YacaGetCamDirection(),
-        player_position = YacaConvertToXYZ(localPos),
+        player_position = localPosXYZ,
         player_range = LocalPlayer.state[YACA_STATE_VOICE_RANGE] or defaultVoiceRange,
         player_is_underwater = IsPedSwimmingUnderWater(localPlayerPed),
         player_is_muted = localData.forceMuted or false,
@@ -1424,6 +1443,9 @@ function YacaClient:registerEvents()
         end
         if YacaRadio then
             YacaRadio:handleDisconnect(remoteId)
+        end
+        if YacaGhosting then
+            YacaGhosting:handleDisconnect(remoteId)
         end
         self.currentlyAirborneApplied[remoteId] = nil
         self.allPlayers[remoteId] = nil

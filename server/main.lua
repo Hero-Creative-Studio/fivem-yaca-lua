@@ -120,6 +120,7 @@ function YacaServer:connectToVoice(src)
             mutedOnPhone = false,
             inCallWith = {},
             emittedPhoneSpeaker = {},
+            ghosting = false,
         },
         radioSettings = {
             activated = false,
@@ -266,6 +267,10 @@ function YacaServer:handlePlayerDisconnect(src)
 
     if YacaServerPhone then
         YacaServerPhone:dropAllPhoneHearAround(src)
+    end
+
+    if YacaServerGhosting then
+        YacaServerGhosting:handlePlayerDisconnect(src)
     end
 
     if player.voiceSettings and player.voiceSettings.microphone then

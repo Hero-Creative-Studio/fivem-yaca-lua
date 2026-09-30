@@ -40,6 +40,7 @@ client_scripts {
     'client/megaphone.lua',
     'client/intercom.lua',
     'client/microphone.lua',
+    'client/ghosting.lua',
     'client/bridge_saltychat.lua',
 }
 
@@ -50,6 +51,7 @@ server_scripts {
     'server/radio.lua',
     'server/phone.lua',
     'server/megaphone.lua',
+    'server/ghosting.lua',
     'server/bridge_saltychat.lua',
 }
 
