@@ -264,17 +264,8 @@ function YacaServer:handlePlayerDisconnect(src)
         end
     end
 
-    if player.voiceSettings and player.voiceSettings.emittedPhoneSpeaker then
-        for targetId, emitterTargets in pairs(player.voiceSettings.emittedPhoneSpeaker) do
-            local target = self.players[targetId]
-            if target and target.voicePlugin then
-                local callMemberIds = {}
-                for callMemberId in pairs(emitterTargets) do
-                    callMemberIds[#callMemberIds + 1] = callMemberId
-                end
-                YacaTriggerClientEvent("client:yaca:phoneHearAround", callMemberIds, { target.voicePlugin.clientId }, false)
-            end
-        end
+    if YacaServerPhone then
+        YacaServerPhone:dropAllPhoneHearAround(src)
     end
 
     if player.voiceSettings and player.voiceSettings.microphone then
@@ -438,6 +429,10 @@ function YacaServer:addNewPlayer(src, clientId, tsUniqueIdentifier)
 
     for microphoneSource, microphone in pairs(activeMicrophones) do
         TriggerClientEvent("client:yaca:microphone", src, microphoneSource, true, microphone)
+    end
+
+    if YacaServerPhone then
+        YacaServerPhone:reestablishPhoneHearAround(src)
     end
 end
 

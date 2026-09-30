@@ -1,12 +1,32 @@
 YacaPhone = {
     inCallWith = {},
     phoneSpeakerActive = false,
+    phoneHearAroundWhisperTargets = {},
+    phoneSpeakerWhisperTargets = {},
 }
 
 local function initPhoneModule()
     YacaPhone:registerEvents()
     YacaPhone:registerExports()
     YacaPhone:registerStateBagHandlers()
+end
+
+local function withoutOwnClientId(clientIds)
+    local ownPlayer = YacaClient:getPlayerByID(YacaCache.serverId)
+    local ownClientId = ownPlayer and ownPlayer.clientId
+
+    local commTargets = {}
+    for _, clientId in ipairs(clientIds) do
+        if clientId ~= ownClientId then
+            commTargets[#commTargets + 1] = { clientId = clientId }
+        end
+    end
+    return commTargets
+end
+
+local function isMutedOnPhone()
+    local ownPlayer = YacaClient:getPlayerByID(YacaCache.serverId)
+    return ownPlayer and ownPlayer.mutedOnPhone or false
 end
 
 function YacaPhone:registerEvents()
@@ -23,16 +43,32 @@ function YacaPhone:registerEvents()
     RegisterNetEvent("client:yaca:phoneHearAround", function(targetClientIds, state)
         if not targetClientIds or #targetClientIds == 0 then return end
 
-        local commTargets = {}
-        for _, clientId in ipairs(targetClientIds) do
-            commTargets[#commTargets + 1] = { clientId = clientId }
-        end
+        local commTargets = withoutOwnClientId(targetClientIds)
+        if #commTargets == 0 then return end
 
         YacaClient:setPlayersCommType(
             commTargets, YacaFilterEnum.PHONE, state,
             nil, nil, nil, CommDeviceMode.TRANSCEIVER,
-            GlobalState[YACA_STATE_PHONE_SPEAKER]
+            GlobalState[YACA_STATE_GLOBAL_ERROR_LEVEL]
         )
+    end)
+
+    RegisterNetEvent("client:yaca:phoneHearAroundWhisper", function(callMemberClientIds, state)
+        if not YacaClient.useWhisper or not callMemberClientIds or #callMemberClientIds == 0 then return end
+
+        local commTargets = withoutOwnClientId(callMemberClientIds)
+        if #commTargets == 0 then return end
+
+        for _, commTarget in ipairs(commTargets) do
+            self.phoneHearAroundWhisperTargets[commTarget.clientId] = state or nil
+        end
+
+        local ownMode = nil
+        if state or next(self.phoneHearAroundWhisperTargets) == nil then
+            ownMode = CommDeviceMode.SENDER
+        end
+
+        YacaClient:setPlayersCommType(commTargets, YacaFilterEnum.PHONE, state, nil, nil, ownMode, CommDeviceMode.RECEIVER)
     end)
 
     RegisterNetEvent("client:yaca:phoneMute", function(targetID, state, onCallStop)
@@ -46,7 +82,11 @@ function YacaPhone:registerEvents()
         if onCallStop then return end
 
         if YacaClient.useWhisper and target.remoteID == YacaCache.serverId then
-            YacaClient:setPlayersCommType({}, YacaFilterEnum.PHONE, not state, nil, nil, CommDeviceMode.SENDER)
+            YacaClient:setPlayersCommType({}, YacaFilterEnum.PHONE, not state, nil, nil, CommDeviceMode.TRANSCEIVER)
+
+            if next(self.phoneSpeakerWhisperTargets) ~= nil then
+                YacaClient:setPlayersCommType({}, YacaFilterEnum.PHONE_SPEAKER, not state, nil, nil, CommDeviceMode.SENDER)
+            end
         elseif not YacaClient.useWhisper and self.inCallWith[targetID] then
             YacaClient:setPlayersCommType(
                 target, YacaFilterEnum.PHONE, state,
@@ -72,11 +112,26 @@ function YacaPhone:registerEvents()
 
         if #targets < 1 then return end
 
+        for _, target in ipairs(targets) do
+            self.phoneSpeakerWhisperTargets[target.clientId] = state or nil
+        end
+
         YacaClient:setPlayersCommType(
             targets, YacaFilterEnum.PHONE_SPEAKER, state,
-            nil, nil, CommDeviceMode.SENDER, CommDeviceMode.RECEIVER
+            nil, nil, self:ownPhoneSpeakerMode(state), CommDeviceMode.RECEIVER
         )
     end)
+end
+
+function YacaPhone:ownPhoneSpeakerMode(state)
+    if isMutedOnPhone() then
+        return nil
+    end
+
+    if state or next(self.phoneSpeakerWhisperTargets) == nil then
+        return CommDeviceMode.SENDER
+    end
+    return nil
 end
 
 function YacaPhone:registerExports()
@@ -129,8 +184,13 @@ function YacaPhone:removePhoneSpeakerFromEntity(player)
     entityData.phoneCallMemberIds = nil
 end
 
-function YacaPhone:handleDisconnect(targetID)
+function YacaPhone:handleDisconnect(targetID, clientId)
     self.inCallWith[targetID] = nil
+
+    if type(clientId) == "number" then
+        self.phoneSpeakerWhisperTargets[clientId] = nil
+        self.phoneHearAroundWhisperTargets[clientId] = nil
+    end
 end
 
 function YacaPhone:reestablishCalls(targetIDs)
@@ -173,9 +233,9 @@ function YacaPhone:enablePhoneCall(targetIDs, state, filter)
         end
     end
 
-    local ownMode = nil
-    if state or (not state and next(self.inCallWith) ~= nil) then
-        ownMode = CommDeviceMode.TRANSCEIVER
+    local ownMode = CommDeviceMode.TRANSCEIVER
+    if (state and isMutedOnPhone()) or (not state and next(self.inCallWith) ~= nil) then
+        ownMode = nil
     end
 
     YacaClient:setPlayersCommType(
