@@ -18,10 +18,9 @@ Before you start, make sure you have OneSync enabled and your server artifacts a
 2. Add `start yaca-voice` into your `server.cfg`.
 3. Open `config/server.lua` and adjust the variables to your needs.
 4. Open `config/shared.lua` and adjust the variables to your needs.
+5. Optional: put the output of the room-acoustics tool into `config/room_acoustics.json` to give custom MLOs their reverb.
 
-## Important!
-
-This Script is mainly for Developers who can improve the system for there own purposes and want a better performing voice system then the typescript version since the lua version only uses about 0.00ms clientside in idle, and about 0.05ms used.
+## Support
 
 If you see any bugs, contact me on discord: matti.bat or use the official [Yaca Discord](http://discord.yaca.systems/)
 Every Report helps making this script work fine for everyone
