@@ -108,7 +108,10 @@ local function initializeClient()
     RegisterNUICallback("YACA_OnNuiReady", function(_, cb)
         YacaWebSocket.nuiReady = true
 
-        if YacaClient.sharedConfig.autoConnectOnJoin then
+        if YacaWebSocket.readyState == 1 then
+            YacaWebSocket.readyState = 0
+            YacaWebSocket:start()
+        elseif YacaClient.sharedConfig.autoConnectOnJoin then
             startVoiceJoinRetryLoop()
         end
 

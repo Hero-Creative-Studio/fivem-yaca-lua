@@ -61,6 +61,9 @@ function connect() {
     }
 
     if (hasActiveSocket()) {
+        if (webSocket.readyState === WebSocket.OPEN) {
+            sendNuiData('YACA_OnConnected')
+        }
         return
     }
 
