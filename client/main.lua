@@ -32,6 +32,7 @@ YacaClient = {
     currentlyAirborneApplied = {},
 
     disabledFilters = {},
+    customRoomAcoustics = {},
     teamSpeakUniqueIdentifier = nil,
 
     isFiveM = (GetGameName() == "fivem"),
@@ -100,6 +101,7 @@ local function initializeClient()
     end
 
     YacaClient.disabledFilters = YacaClient:parseDisabledFilters(YacaClient.sharedConfig.disabledFilters)
+    YacaClient.customRoomAcoustics = YacaClient:loadCustomRoomAcoustics()
 
     YacaClient:setCurrentPluginState(YacaPluginStates.NOT_CONNECTED)
 
@@ -470,6 +472,48 @@ function YacaClient:parseDisabledFilters(filters)
     return parsed
 end
 
+local ROOM_ACOUSTICS_FILE = "config/room_acoustics.json"
+
+function YacaClient:loadCustomRoomAcoustics()
+    local fileData = LoadResourceFile(YacaCache.resource, ROOM_ACOUSTICS_FILE)
+    if not fileData then
+        print(("[YaCA] Could not read '%s', custom MLOs will stay dry."):format(ROOM_ACOUSTICS_FILE))
+        return {}
+    end
+
+    local ok, parsedFile = pcall(json.decode, fileData)
+    if not ok or type(parsedFile) ~= "table" then
+        print(("[YaCA] Error while parsing '%s'."):format(ROOM_ACOUSTICS_FILE))
+        return {}
+    end
+
+    if parsedFile.version ~= 1 then
+        print(("[YaCA] Unexpected room acoustics file version '%s', expected 1."):format(tostring(parsedFile.version)))
+        return {}
+    end
+
+    local roomAcoustics = {}
+    for interiorKeyString, interior in pairs(type(parsedFile.interiors) == "table" and parsedFile.interiors or {}) do
+        local interiorKey = YacaToUInt32(math.tointeger(tonumber(interiorKeyString)) or 0)
+        if interiorKey ~= 0 and type(interior) == "table" and type(interior.rooms) == "table" then
+            for roomKeyString, room in pairs(interior.rooms) do
+                local roomKey = YacaToUInt32(math.tointeger(tonumber(roomKeyString)) or 0)
+                if roomKey ~= 0 and type(room) == "table" then
+                    roomAcoustics[#roomAcoustics + 1] = {
+                        interior_key = interiorKey,
+                        room_key = roomKey,
+                        small_send = YacaClamp(tonumber(room.small) or 0, 0, 1),
+                        medium_send = YacaClamp(tonumber(room.medium) or 0, 0, 1),
+                        large_send = YacaClamp(tonumber(room.large) or 0, 0, 1),
+                    }
+                end
+            end
+        end
+    end
+
+    return roomAcoustics
+end
+
 function YacaClient:registerStateBagCaches()
     AddStateBagChangeHandler(YACA_STATE_VOICE_RANGE, "", function(bagName, _, value, _)
         local playerId = GetPlayerFromStateBagName(bagName)
@@ -514,6 +558,7 @@ function YacaClient:initRequest(dataObj)
         unmute_delay = self.sharedConfig.unmuteDelay,
         operation_mode = dataObj.useWhisper and 1 or 0,
         disabled_filters = self.disabledFilters,
+        custom_room_acoustics = self.customRoomAcoustics,
     })
 
     self.useWhisper = dataObj.useWhisper or false

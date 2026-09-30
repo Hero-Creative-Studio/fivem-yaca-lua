@@ -17,6 +17,7 @@ ui_page 'web/index.html'
 files {
     'web/index.html',
     'web/script.js',
+    'config/room_acoustics.json',
 }
 
 shared_scripts {
