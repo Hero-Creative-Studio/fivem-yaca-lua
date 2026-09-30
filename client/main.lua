@@ -742,7 +742,7 @@ end
 
 function YacaClient:checkIfVehicleHasOpening(vehicle)
     if not vehicle then return true end
-    if self.mufflingVehicleWhitelistHash[GetEntityModel(vehicle)] then return true end
+    if self.mufflingVehicleWhitelistHash[YacaToUInt32(GetEntityModel(vehicle))] then return true end
     return YacaVehicleHasOpening(vehicle)
 end
 

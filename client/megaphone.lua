@@ -46,7 +46,7 @@ function YacaMegaphone:registerEvents()
                         TriggerServerEvent("server:yaca:playerLeftVehicle")
                     else
                         local vehicleClass = GetVehicleClass(currentVehicle)
-                        local vehicleModel = GetEntityModel(currentVehicle)
+                        local vehicleModel = YacaToUInt32(GetEntityModel(currentVehicle))
 
                         local allowedClasses = YacaClient.sharedConfig.megaphone.allowedVehicleClasses or {}
                         local classAllowed = false
