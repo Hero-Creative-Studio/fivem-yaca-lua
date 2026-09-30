@@ -137,7 +137,7 @@ YacaSharedConfig = {
             vehicleWhitelist = {
                 "gauntlet6", "draugur", "bodhi2", "vagrant", "outlaw",
                 "trophytruck", "ratel", "drifttampa", "sm722", "tornado4",
-                "swinger", "locust", "hotring",
+                "swinger", "locust", "hotring", "tampa2",
             },
         },
         -- The intensities of the muffling. (0 = no muffling, 10 = full muffling)
