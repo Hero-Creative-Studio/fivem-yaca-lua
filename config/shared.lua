@@ -81,6 +81,36 @@ YacaSharedConfig = {
         maxDistance = 1000,
     },
 
+    -- Visualization of the radio towers and their coverage, toggle it with the `setTowerVisualization` export.
+    towerVisualization = {
+        -- Show the visualization right away.
+        enabled = false,
+        -- Zones drawn around every tower, each reaching up to the distance where the signal drops to signalStrength (0 - 1).
+        -- Keep them tight, the zones of all towers stack on the map.
+        zones = {
+            { signalStrength = 0.75, blipColor = 2, blipAlpha = 70, r = 0, g = 255, b = 0 },
+            { signalStrength = 0.5, blipColor = 5, blipAlpha = 30, r = 255, g = 255, b = 0 },
+        },
+        -- (FiveM only)
+        blip = {
+            enabled = true,
+            showZones = true,
+            sprite = 1,
+            color = 4,
+            scale = 0.7,
+        },
+        -- Marker drawn at every tower, colored by the zone the player stands in.
+        marker = {
+            enabled = true,
+            drawDistance = 500,
+            -- Ignored in RedM.
+            type = 1,
+            scale = 3.0,
+            height = 15.0,
+            alpha = 100,
+        },
+    },
+
     airborne = {
         -- Enable the airborne voice filter for crew in the same aircraft. (FiveM only)
         enabled = false,

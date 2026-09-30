@@ -395,11 +395,13 @@ function YacaRadio:setRadioTowers(towers)
     end
 
     YacaClient.towerConfig.towerPositions = YacaCopyTowerPositions(towers)
+    if YacaTowerVisualization then YacaTowerVisualization:refresh() end
     return true
 end
 
 function YacaRadio:resetRadioTowers()
     YacaClient.towerConfig.towerPositions = YacaCopyTowerPositions(self.defaultTowerPositions)
+    if YacaTowerVisualization then YacaTowerVisualization:refresh() end
 end
 
 function YacaRadio:handleDisconnect(remoteId)

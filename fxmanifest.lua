@@ -36,6 +36,7 @@ client_scripts {
     'client/websocket.lua',
     'client/main.lua',
     'client/radio.lua',
+    'client/towers.lua',
     'client/phone.lua',
     'client/megaphone.lua',
     'client/intercom.lua',

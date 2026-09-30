@@ -26,6 +26,7 @@ YacaLocales["de"] = {
     radio_not_activated = "Das Funkgeraet ist nicht aktiviert!",
     radio_secured_channel = "Der Funkkanal ist zu gut gesichert.",
     radio_channel_invalid = "Der Funkkanal ist ungueltig!",
+    radio_tower = "Funkturm",
     player_not_found = "Spieler mit ID %s wurde nicht gefunden.",
     ingamename_not_set = "Ingame-Name fuer Spieler %s ist nicht gesetzt.",
 }
