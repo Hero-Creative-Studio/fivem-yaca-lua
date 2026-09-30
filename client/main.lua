@@ -375,7 +375,7 @@ function YacaClient:isCommTypeValid(commType)
     return false
 end
 
-function YacaClient:setPlayersCommType(players, commType, state, channel, range, ownMode, otherPlayersMode, errorLevel)
+function YacaClient:setPlayersCommType(players, commType, state, channel, range, ownMode, otherPlayersMode, errorLevel, speakerSettings, speakerClient)
     if type(players) ~= "table" or players.clientId then
         players = { players }
     end
@@ -412,6 +412,23 @@ function YacaClient:setPlayersCommType(players, commType, state, channel, range,
 
     if channel ~= nil then protocol.channel = channel end
     if range ~= nil then protocol.range = range end
+
+    if speakerSettings and type(speakerSettings.positions) == "table" and #speakerSettings.positions > 0 then
+        local positions = {}
+        for i, position in ipairs(speakerSettings.positions) do
+            positions[i] = YacaConvertToXYZ(position)
+        end
+        protocol.speaker_positions = positions
+
+        if speakerSettings.interiorKey and speakerSettings.interiorKey ~= 0 and speakerSettings.roomKey and speakerSettings.roomKey ~= 0 then
+            protocol.speaker_interior_key = YacaToUInt32(speakerSettings.interiorKey)
+            protocol.speaker_room_key = YacaToUInt32(speakerSettings.roomKey)
+        end
+    end
+
+    if type(speakerClient) == "number" then
+        protocol.speaker_client_id = speakerClient
+    end
 
     self:sendWebsocket({
         base = { request_type = "INGAME" },
