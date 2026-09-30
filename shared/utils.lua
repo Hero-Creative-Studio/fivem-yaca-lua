@@ -44,6 +44,28 @@ function YacaRoundFloat(value, decimals)
     return math_floor(value * mult + 0.5) / mult
 end
 
+function YacaIsValidTowerPositions(towers)
+    if type(towers) ~= "table" then return false end
+    for _, tower in pairs(towers) do
+        if type(tower) ~= "table" or #tower ~= 3 then return false end
+        for i = 1, 3 do
+            local coordinate = tower[i]
+            if type(coordinate) ~= "number" or coordinate ~= coordinate or math.abs(coordinate) == math.huge then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+function YacaCopyTowerPositions(towers)
+    local copy = {}
+    for i, tower in ipairs(towers) do
+        copy[i] = { tower[1], tower[2], tower[3] }
+    end
+    return copy
+end
+
 ---@param level number
 function YacaSetGlobalErrorLevel(level)
     if level < 0 or level > 1 then return end

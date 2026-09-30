@@ -12,6 +12,8 @@ YacaRadio = {
     activeRadioChannel = 1,
     secondaryRadioChannel = 2,
 
+    defaultTowerPositions = {},
+
     radioOnCooldown = false,
     currentRadioProp = nil,
 
@@ -27,6 +29,7 @@ local function initRadioModule()
     if YacaClient.sharedConfig then
         YacaRadio.radioMode = YacaClient.sharedConfig.radioSettings.mode or "None"
     end
+    YacaRadio.defaultTowerPositions = YacaCopyTowerPositions(YacaClient.towerConfig.towerPositions)
 
     YacaRadio:registerExports()
     YacaRadio:registerEvents()
@@ -107,6 +110,10 @@ function YacaRadio:registerExports()
     exports("radioTalkingStart", function(state, channel) self:radioTalkingStart(state, channel) end)
     exports("setRadioMode", function(mode) self.radioMode = mode end)
     exports("getRadioMode", function() return self.radioMode end)
+    exports("setRadioTowers", function(towers) return self:setRadioTowers(towers) end)
+    exports("resetRadioTowers", function() self:resetRadioTowers() end)
+    exports("getRadioTowers", function() return YacaCopyTowerPositions(YacaClient.towerConfig.towerPositions) end)
+    exports("getRadioSignalStrength", function(serverId) return self:getRadioSignalStrength(serverId) end)
 end
 
 function YacaRadio:registerEvents()
@@ -118,6 +125,14 @@ function YacaRadio:registerEvents()
         if player then
             self:removeRadioProp(player)
         end
+    end)
+
+    RegisterNetEvent("client:yaca:setRadioTowers", function(towers)
+        if towers == nil then
+            self:resetRadioTowers()
+            return
+        end
+        self:setRadioTowers(towers)
     end)
 
     RegisterNetEvent("client:yaca:setRadioFreq", function(channel, frequency)
@@ -340,6 +355,58 @@ function YacaRadio:getNearestRadioTower()
     end
 
     return nearestTowerDistance
+end
+
+function YacaRadio:calculateDistanceForSignalStrength(signalStrength, maxDistance)
+    maxDistance = maxDistance or YacaClient.sharedConfig.radioSettings.maxDistance
+    local errorLevel = YacaClamp(1 - signalStrength, 0, 1)
+    local ratio = (10 ^ errorLevel - 1) / 8.5
+    return math.min(ratio * maxDistance, maxDistance)
+end
+
+function YacaRadio:getRadioSignalStrength(serverId)
+    local globalErrorLevel = GlobalState[YACA_STATE_GLOBAL_ERROR_LEVEL] or 0
+
+    if self.radioMode == "None" then
+        return YacaClamp(1 - globalErrorLevel, 0, 1)
+    end
+
+    local distance = math.huge
+    if self.radioMode == "Tower" then
+        distance = self:getNearestRadioTower()
+    elseif type(serverId) == "number" then
+        local playerId = GetPlayerFromServerId(serverId)
+        if playerId ~= -1 then
+            distance = #(GetEntityCoords(YacaCache.ped, false) - GetEntityCoords(GetPlayerPed(playerId), false))
+        end
+    end
+
+    if distance > YacaClient.sharedConfig.radioSettings.maxDistance then
+        return 0
+    end
+
+    return YacaClamp(1 - math.max(self:calculateSignalStrength(distance), globalErrorLevel), 0, 1)
+end
+
+function YacaRadio:setRadioTowers(towers)
+    if not YacaIsValidTowerPositions(towers) then
+        print("[YaCA] Invalid radio towers given, expected an array of { x, y, z } coordinates.")
+        return false
+    end
+
+    YacaClient.towerConfig.towerPositions = YacaCopyTowerPositions(towers)
+    return true
+end
+
+function YacaRadio:resetRadioTowers()
+    YacaClient.towerConfig.towerPositions = YacaCopyTowerPositions(self.defaultTowerPositions)
+end
+
+function YacaRadio:handleDisconnect(remoteId)
+    for _, players in pairs(self.playersInRadioChannel) do
+        players[remoteId] = nil
+    end
+    self.playersWithShortRange[remoteId] = nil
 end
 
 function YacaRadio:enableRadio(state)
@@ -589,18 +656,14 @@ function YacaRadio:disableRadioFromPlayerInChannel(channel)
     if not hasPlayers then return end
 
     local targets = {}
-    local toRemove = {}
     for playerId in pairs(players) do
         local player = YacaClient:getPlayerByID(playerId)
         if player and player.remoteID then
             targets[#targets + 1] = player
-            toRemove[#toRemove + 1] = player.remoteID
         end
     end
 
-    for _, remoteId in ipairs(toRemove) do
-        players[remoteId] = nil
-    end
+    self.playersInRadioChannel[channel] = {}
 
     if #targets > 0 then
         YacaClient:setPlayersCommType(targets, YacaFilterEnum.RADIO, false, channel, nil, CommDeviceMode.RECEIVER, CommDeviceMode.SENDER)

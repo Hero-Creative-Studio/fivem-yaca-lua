@@ -1,9 +1,12 @@
 YacaServerRadio = {
     radioFrequencyMap = {},   -- [frequency] = { [src] = { muted = bool } }
     securedRadioFrequencies = {},  -- { { start = "...", ["end"] = "..." }, ... }
+    defaultTowerPositions = {},
+    towersOverridden = false,
 }
 
 local function initServerRadioModule()
+    YacaServerRadio.defaultTowerPositions = YacaCopyTowerPositions(YacaServer.towerConfig.towerPositions)
     YacaServerRadio:registerEvents()
     YacaServerRadio:registerExports()
 end
@@ -59,6 +62,41 @@ function YacaServerRadio:registerExports()
     exports("getPermittedRadioFrequencies", function(src)
         return self:getPermittedRadioFrequencies(src)
     end)
+
+    exports("setRadioTowers", function(towers)
+        return self:setRadioTowers(towers)
+    end)
+
+    exports("resetRadioTowers", function()
+        self:resetRadioTowers()
+    end)
+
+    exports("getRadioTowers", function()
+        return YacaCopyTowerPositions(YacaServer.towerConfig.towerPositions)
+    end)
+end
+
+function YacaServerRadio:setRadioTowers(towers)
+    if not YacaIsValidTowerPositions(towers) then
+        print("[YaCA] Invalid radio towers given, expected an array of { x, y, z } coordinates.")
+        return false
+    end
+
+    YacaServer.towerConfig.towerPositions = YacaCopyTowerPositions(towers)
+    self.towersOverridden = true
+    TriggerClientEvent("client:yaca:setRadioTowers", -1, YacaServer.towerConfig.towerPositions)
+    return true
+end
+
+function YacaServerRadio:resetRadioTowers()
+    YacaServer.towerConfig.towerPositions = YacaCopyTowerPositions(self.defaultTowerPositions)
+    self.towersOverridden = false
+    TriggerClientEvent("client:yaca:setRadioTowers", -1, nil)
+end
+
+function YacaServerRadio:syncRadioTowers(src)
+    if not self.towersOverridden then return end
+    TriggerClientEvent("client:yaca:setRadioTowers", src, YacaServer.towerConfig.towerPositions)
 end
 
 function YacaServerRadio:getPlayersInRadioFrequency(frequency)
@@ -118,11 +156,15 @@ function YacaServerRadio:changeRadioFrequency(src, channel, frequency)
         return
     end
 
+    local leftOldFrequency = false
     if oldFrequency and oldFrequency ~= frequency then
-        self:leaveRadioFrequency(src, channel, oldFrequency)
+        leftOldFrequency = self:leaveRadioFrequency(src, channel, oldFrequency, false)
     end
 
     if not self:hasAccessToRadioFrequency(src, frequency) then
+        if leftOldFrequency then
+            TriggerEvent("yaca:external:changedRadioFrequency", src, channel, "0")
+        end
         return
     end
 
@@ -137,12 +179,12 @@ function YacaServerRadio:changeRadioFrequency(src, channel, frequency)
     TriggerEvent("yaca:external:changedRadioFrequency", src, channel, frequency)
 end
 
-function YacaServerRadio:leaveRadioFrequency(src, channel, frequency)
+function YacaServerRadio:leaveRadioFrequency(src, channel, frequency, emitEvent)
     local player = YacaServer:getPlayer(src)
-    if not player then return end
+    if not player then return false end
 
-    local allPlayersInChannel = self.radioFrequencyMap[frequency]
-    if not allPlayersInChannel then return end
+    local allPlayersInChannel = frequency and self.radioFrequencyMap[frequency]
+    if not allPlayersInChannel then return false end
 
     player.radioSettings.frequencies[channel] = "0"
 
@@ -171,6 +213,12 @@ function YacaServerRadio:leaveRadioFrequency(src, channel, frequency)
     if isEmpty then
         self.radioFrequencyMap[frequency] = nil
     end
+
+    if emitEvent ~= false then
+        TriggerEvent("yaca:external:changedRadioFrequency", src, channel, "0")
+    end
+
+    return true
 end
 
 function YacaServerRadio:radioChannelMute(src, channel, state)

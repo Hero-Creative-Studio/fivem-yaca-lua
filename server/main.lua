@@ -360,6 +360,10 @@ function YacaServer:connect(src)
     }
 
     TriggerClientEvent("client:yaca:init", src, initObject)
+
+    if YacaServerRadio then
+        YacaServerRadio:syncRadioTowers(src)
+    end
 end
 
 function YacaServer:addNewPlayer(src, clientId, tsUniqueIdentifier)

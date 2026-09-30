@@ -1408,6 +1408,9 @@ function YacaClient:registerEvents()
         if YacaPhone then
             YacaPhone:handleDisconnect(remoteId)
         end
+        if YacaRadio then
+            YacaRadio:handleDisconnect(remoteId)
+        end
         self.currentlyAirborneApplied[remoteId] = nil
         self.allPlayers[remoteId] = nil
     end)
