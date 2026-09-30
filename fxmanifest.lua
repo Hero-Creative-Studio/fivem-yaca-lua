@@ -39,6 +39,7 @@ client_scripts {
     'client/phone.lua',
     'client/megaphone.lua',
     'client/intercom.lua',
+    'client/microphone.lua',
     'client/bridge_saltychat.lua',
 }
 

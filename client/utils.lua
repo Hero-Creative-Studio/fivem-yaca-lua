@@ -148,6 +148,43 @@ function YacaGetInteriorRoomPair(entity)
     return pair
 end
 
+function YacaGetInteriorRoomPairAtCoords(position)
+    local interior = GetInteriorAtCoords(position.x, position.y, position.z)
+    if not interior or interior == 0 or not IsValidInterior(interior) then
+        return YacaOutsideRoomPair
+    end
+
+    local _, interiorNameHash = GetInteriorLocationAndNamehash(interior)
+    local interiorKey = YacaToUInt32(interiorNameHash or 0)
+    if interiorKey == 0 then
+        return YacaOutsideRoomPair
+    end
+
+    local roomKey = 0
+    local smallestVolume = math.huge
+
+    for roomIndex = 0, GetInteriorRoomCount(interior) - 1 do
+        local minX, minY, minZ, maxX, maxY, maxZ = GetInteriorRoomExtents(interior, roomIndex)
+
+        if position.x >= minX and position.x <= maxX
+            and position.y >= minY and position.y <= maxY
+            and position.z >= minZ and position.z <= maxZ then
+            local volume = (maxX - minX) * (maxY - minY) * (maxZ - minZ)
+            local roomName = volume < smallestVolume and GetInteriorRoomName(interior, roomIndex)
+            if roomName and roomName ~= "" then
+                roomKey = YacaJoaat(roomName)
+                smallestVolume = volume
+            end
+        end
+    end
+
+    if roomKey == 0 then
+        return YacaOutsideRoomPair
+    end
+
+    return { interiorKey = interiorKey, roomKey = roomKey }
+end
+
 ---@param animDict string
 ---@param timeout number|nil
 ---@return boolean

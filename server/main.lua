@@ -175,6 +175,15 @@ function YacaServer:registerExports()
         return player.voiceSettings.volumeModifier or 1
     end)
 
+    exports("setPlayerMicrophone", function(playerId, state, settings)
+        self:setPlayerMicrophone(playerId, state, settings)
+    end)
+
+    exports("getPlayerMicrophone", function(playerId)
+        local player = self:getPlayer(playerId)
+        return player and player.voiceSettings.microphone or false
+    end)
+
     exports("getPlayerTeamSpeakUniqueIdentifier", function(playerId)
         local player = self:getPlayer(playerId)
         if not player or not player.voiceSettings then return "" end
@@ -268,6 +277,10 @@ function YacaServer:handlePlayerDisconnect(src)
         end
     end
 
+    if player.voiceSettings and player.voiceSettings.microphone then
+        TriggerClientEvent("client:yaca:microphone", -1, src, false)
+    end
+
     TriggerClientEvent("client:yaca:disconnect", -1, src)
     self.players[src] = nil
 end
@@ -306,6 +319,18 @@ function YacaServer:setPlayerVolumeModifier(src, volumeModifier)
     end
 
     TriggerClientEvent("client:yaca:setPlayerVolumeModifier", -1, src, clampedModifier)
+end
+
+function YacaServer:setPlayerMicrophone(src, state, settings)
+    src = tonumber(src) or src
+    local player = self.players[src]
+    if not player then
+        print(YacaLocale("player_not_found", src))
+        return
+    end
+
+    player.voiceSettings.microphone = state and (settings or {}) or nil
+    TriggerClientEvent("client:yaca:microphone", -1, src, state, settings)
 end
 
 function YacaServer:getPlayerAliveStatus(playerId)
@@ -389,6 +414,7 @@ function YacaServer:addNewPlayer(src, clientId, tsUniqueIdentifier)
     TriggerClientEvent("client:yaca:addPlayers", -1, player.voicePlugin)
 
     local allPlayersData = {}
+    local activeMicrophones = {}
     local activePlayers = GetPlayers()
     for _, playerSource in ipairs(activePlayers) do
         local intPlayerSource = tonumber(playerSource)
@@ -396,11 +422,23 @@ function YacaServer:addNewPlayer(src, clientId, tsUniqueIdentifier)
             local playerServer = self.players[intPlayerSource]
             if playerServer and playerServer.voicePlugin then
                 allPlayersData[#allPlayersData + 1] = playerServer.voicePlugin
+
+                if playerServer.voiceSettings.microphone then
+                    activeMicrophones[intPlayerSource] = playerServer.voiceSettings.microphone
+                end
             end
         end
     end
 
+    if player.voiceSettings.microphone then
+        activeMicrophones[src] = player.voiceSettings.microphone
+    end
+
     TriggerClientEvent("client:yaca:addPlayers", src, allPlayersData)
+
+    for microphoneSource, microphone in pairs(activeMicrophones) do
+        TriggerClientEvent("client:yaca:microphone", src, microphoneSource, true, microphone)
+    end
 end
 
 Citizen.CreateThread(function()

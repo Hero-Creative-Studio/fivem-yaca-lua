@@ -163,6 +163,7 @@ YacaSharedConfig = {
     -- When set to true the plugin syncs the talk state via the plugin, instead of the default way via statebags. This imitates the way how saltychat syncs the talk state, but has some drawbacks.
     useLocalLipSync = true,
     -- Filters/effects disabled for the plugin INIT (devices keep working without coloring).
-    -- Valid: RADIO, PHONE, PHONE_SPEAKER, PHONE_HISTORICAL, MEGAPHONE, INTERCOM, AIRBORNE, MUFFLE, WATER, ECHO, REVERB
+    -- Valid: RADIO, PHONE, PHONE_SPEAKER, PHONE_HISTORICAL, MEGAPHONE, INTERCOM, AIRBORNE, MICROPHONE, MUFFLE, WATER, REVERB, LOUDSPEAKER
+    -- LOUDSPEAKER is the cabinet colouring of devices with speaker positions, the PA stays positioned in the world.
     disabledFilters = {},
 }
