@@ -21,6 +21,7 @@ files {
 
 shared_scripts {
     'config/shared.lua',
+    'config/towers.lua',
     'shared/enums.lua',
     'shared/constants.lua',
     'locales/en.lua',
@@ -42,7 +43,6 @@ client_scripts {
 
 server_scripts {
     'config/server.lua',
-    'config/towers.lua',
     'server/utils.lua',
     'server/main.lua',
     'server/radio.lua',
