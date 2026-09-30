@@ -1,7 +1,7 @@
 # Yaca Voice Lua version für die süßen <3
-![](https://img.shields.io/github/downloads/mattibat/yaca-voice/total?logo=github)
-![](https://img.shields.io/github/downloads/mattibat/yaca-voice/latest/total?logo=github)
-![](https://img.shields.io/github/contributors/mattibat/yaca-voice?logo=github)
+![](https://img.shields.io/github/downloads/mattibat/fivem-yaca-lua/total?logo=github)
+![](https://img.shields.io/github/downloads/mattibat/fivem-yaca-lua/latest/total?logo=github)
+![](https://img.shields.io/github/contributors/mattibat/fivem-yaca-lua?logo=github)
 ## [yaca.systems](https://yaca.systems/) for [FiveM](https://fivem.net/) & [RedM](https://redm.net/)
 
 This is a example implementation for [FiveM](https://fivem.net/) & [RedM](https://redm.net/).
