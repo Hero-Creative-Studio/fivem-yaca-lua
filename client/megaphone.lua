@@ -1,5 +1,6 @@
 YacaMegaphone = {
     canUseMegaphone = false,
+    forceCanUseMegaphone = false,
     lastMegaphoneState = false,
     megaphoneVehicleWhitelistHashes = {},
 }
@@ -43,7 +44,9 @@ function YacaMegaphone:registerEvents()
 
                     if currentSeat == false or currentSeat > 0 or not currentVehicle then
                         self.canUseMegaphone = false
-                        TriggerServerEvent("server:yaca:playerLeftVehicle")
+                        if not self.forceCanUseMegaphone then
+                            TriggerServerEvent("server:yaca:playerLeftVehicle")
+                        end
                     else
                         local vehicleClass = GetVehicleClass(currentVehicle)
                         local vehicleModel = YacaToUInt32(GetEntityModel(currentVehicle))
@@ -89,11 +92,16 @@ end
 
 function YacaMegaphone:registerExports()
     exports("getCanUseMegaphone", function()
-        return self.canUseMegaphone
+        return self:isMegaphoneUsable()
     end)
 
-    exports("setCanUseMegaphone", function(state)
+    exports("getCurrentMegaphoneState", function()
+        return self.lastMegaphoneState
+    end)
+
+    exports("setCanUseMegaphone", function(state, force)
         self.canUseMegaphone = state
+        self.forceCanUseMegaphone = state and force == true
         if not state and self.lastMegaphoneState then
             TriggerServerEvent("server:yaca:playerLeftVehicle")
         end
@@ -114,38 +122,56 @@ function YacaMegaphone:registerStateBagHandlers()
         local playerSource = GetPlayerServerId(playerId)
         if playerSource == 0 then return end
 
-        if playerSource == YacaCache.serverId then
-            YacaClient:setPlayersCommType(
-                {}, YacaFilterEnum.MEGAPHONE,
-                type(value) == "number", nil, value,
-                CommDeviceMode.SENDER, CommDeviceMode.RECEIVER
-            )
-        else
-            local player = YacaClient:getPlayerByID(playerSource)
-            if not player then return end
-
-            YacaClient:setPlayersCommType(
-                player, YacaFilterEnum.MEGAPHONE,
-                type(value) == "number", nil, value,
-                CommDeviceMode.RECEIVER, CommDeviceMode.SENDER
-            )
-        end
+        self:applyMegaphoneEffect(playerSource, value)
     end)
+end
+
+function YacaMegaphone:applyMegaphoneEffect(playerSource, value)
+    if playerSource == YacaCache.serverId then
+        YacaClient:setPlayersCommType(
+            {}, YacaFilterEnum.MEGAPHONE,
+            type(value) == "number", nil, value,
+            CommDeviceMode.SENDER, CommDeviceMode.RECEIVER
+        )
+        return
+    end
+
+    local player = YacaClient:getPlayerByID(playerSource)
+    if not player then return end
+
+    YacaClient:setPlayersCommType(
+        player, YacaFilterEnum.MEGAPHONE,
+        type(value) == "number", nil, value,
+        CommDeviceMode.RECEIVER, CommDeviceMode.SENDER
+    )
+end
+
+function YacaMegaphone:reestablishMegaphone(targetIDs)
+    for _, targetId in ipairs(targetIDs) do
+        local value = Player(targetId).state[YACA_STATE_MEGAPHONE]
+        if type(value) == "number" then
+            self:applyMegaphoneEffect(targetId, value)
+        end
+    end
+end
+
+function YacaMegaphone:isMegaphoneUsable()
+    if self.forceCanUseMegaphone then
+        return true
+    end
+
+    if YacaClient.isFiveM and not YacaCache.vehicle and YacaClient.sharedConfig.megaphone.automaticVehicleDetection then
+        return false
+    end
+
+    return self.canUseMegaphone
 end
 
 function YacaMegaphone:useMegaphone(state)
     state = state or false
 
-    if YacaClient.isFiveM then
-        if (not YacaCache.vehicle and YacaClient.sharedConfig.megaphone.automaticVehicleDetection)
-            or not self.canUseMegaphone
-            or state == self.lastMegaphoneState then
-            return
-        end
-    else
-        if not self.canUseMegaphone or state == self.lastMegaphoneState then
-            return
-        end
+    if not self:isMegaphoneUsable() or state == self.lastMegaphoneState then
+        return
     end
 
     self.lastMegaphoneState = not self.lastMegaphoneState

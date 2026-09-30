@@ -1442,6 +1442,9 @@ function YacaClient:registerEvents()
         if YacaPhone then
             YacaPhone:reestablishCalls(newPlayers)
         end
+        if YacaMegaphone then
+            YacaMegaphone:reestablishMegaphone(newPlayers)
+        end
     end)
 
     RegisterNetEvent("client:yaca:muteTarget", function(target, muted)
