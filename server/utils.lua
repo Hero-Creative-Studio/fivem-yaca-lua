@@ -45,7 +45,7 @@ function YacaCheckVersion()
         return
     end
 
-    PerformHttpRequest("https://api.github.com/repos/mattibat/fivem-yaca-lua/releases/latest", function(statusCode, responseText)
+    PerformHttpRequest("https://api.github.com/repos/Hero-Creative-Studio/fivem-yaca-lua/releases/latest", function(statusCode, responseText)
         if statusCode ~= 200 then
             print("[YaCA] Version check failed, unable to fetch latest release.")
             return

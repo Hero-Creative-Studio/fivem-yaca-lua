@@ -1,7 +1,14 @@
-# Yaca Voice Lua version für die süßen <3
-![](https://img.shields.io/github/downloads/mattibat/fivem-yaca-lua/total?logo=github)
-![](https://img.shields.io/github/downloads/mattibat/fivem-yaca-lua/latest/total?logo=github)
-![](https://img.shields.io/github/contributors/mattibat/fivem-yaca-lua?logo=github)
+<p align="center">
+  <img src="https://herocreative.de/images/hero-creative-studio-logo.webp?v=2" alt="Hero Creative Studio" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/github/downloads/Hero-Creative-Studio/fivem-yaca-lua/total?logo=github" alt="Downloads" />
+</p>
+
+As a sign of our commitment to supporting FiveM server owners, we fork and improve well-known but poorly maintained repositories and release them for free. Enjoy the scripts, and feel free to contribute yourself. If you find any bugs or have ideas for improvements, please let us know!
+
+---
 ## [yaca.systems](https://yaca.systems/) for [FiveM](https://fivem.net/) & [RedM](https://redm.net/)
 
 This is a example implementation for [FiveM](https://fivem.net/) & [RedM](https://redm.net/).
@@ -22,5 +29,5 @@ Before you start, make sure you have OneSync enabled and your server artifacts a
 
 ## Support
 
-If you see any bugs, contact me on discord: matti.bat or use the official [Yaca Discord](http://discord.yaca.systems/)
-Every Report helps making this script work fine for everyone
+If you see any bugs, contact us on discord: [Discord](https://discord.herocreative.de)
+Every Report helps making this script work better for everyone
