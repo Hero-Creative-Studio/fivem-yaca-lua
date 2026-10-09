@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    env:
+      SCRIPT_NAME: yaca-voice
+      FXMANIFEST_PATH: fxmanifest.lua
+
+      INCLUDE_PATHS: |
+        fxmanifest.lua
+        README.md
+        LICENSE
+        client
+        server
+        shared
+        config
+        locales
+        web
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Version bumpen
+        id: bump
+        run: node .github/scripts/bump-version.js
+
+      - name: Version-Bump committen und pushen
+        id: push_bump
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FXMANIFEST_PATH"
+          if git diff --staged --quiet; then
+            echo "Keine Versionsänderung - Abbruch."
+            exit 1
+          fi
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]"
+          git push
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Git-Daten sammeln
+        run: node .github/scripts/collect-git-data.js
+
+      - name: Release-ZIP erstellen
+        id: zip
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.bump.outputs.version }}"
+          STAGE="staging/${SCRIPT_NAME}"
+          ZIP_NAME="${SCRIPT_NAME}-v${VERSION}.zip"
+
+          rm -rf staging
+          mkdir -p "$STAGE"
+
+          while IFS= read -r path || [ -n "$path" ]; do
+            path="$(echo "$path" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            [ -z "$path" ] && continue
+            if [ -e "$path" ]; then
+              mkdir -p "$STAGE/$(dirname "$path")"
+              cp -a "$path" "$STAGE/$path"
+            fi
+          done <<< "$INCLUDE_PATHS"
+
+          (
+            cd staging
+            zip -r "../$ZIP_NAME" "$SCRIPT_NAME"
+          )
+
+          echo "path=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub Release erstellen
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          name: ${{ env.SCRIPT_NAME }} v${{ steps.bump.outputs.version }}
+          body_path: release-body.md
+          files: ${{ steps.zip.outputs.path }}
+          target_commitish: ${{ steps.push_bump.outputs.sha }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
